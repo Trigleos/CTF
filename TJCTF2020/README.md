@@ -17,13 +17,20 @@ Reverse a Unity game and patch it to get the flag
 ## Description
 This challenge was the last Reversing challenge for TJCTF and gave 80 points. The challenge provided you with a folder that contained a binary as well as several Unity related files and libraries. The game itself was pretty simple. All you had to do was hit space to shoot a knife and hit an orange, all while trying to avoid hitting the ducks swimming randomly in between.
 If you manage to hit the orange, your score gets increased by 1.
+
 ![game](img/game.gif)
+
 When hitting a duck, your score gets reset to zero,
+
 ![gameover](img/gameover.gif)
+
 which means that we probably need to reach a certain score to get the flag. Unity games are normally written in C# which is an interpreted language that generates a bytecode instead of machine code which means that we can easily decompile it. I'll use dnSpy to decompile the program. 
+
 ## Reversing
 Unity stores the game logic in *Projectname*_Data/Managed/Assembly-CSharp.dll so let's open it in dnSpy
+
 ![dnSpy](img/dnSpy.png)
+
 Let's try to make the game easier by changing the duck collision behaviour described in the class DuckCollisionSystem.
 The important part of the code looks like this:
 ````C#
@@ -41,7 +48,9 @@ The code basically checks if the distance between a duck and the knife is smalle
 ````
 
 After recompiling the code, we can now shoot as many knives as we want without hitting any duck. While i was playing the patched version, I noticed that the score showed a letter instead of a number every multiple of 20, so I played a while to see if the flag would be showing up. 
+
 ![patched](img/hacked.gif)
+
 The issue however was that the encoded text was really long and it took me ages to reach each character. So I decided to take a look at the KnifeMoveSystem class which also dealt with increasing the score
 ````C#
 if  (this.knife.Transforms[i].position.y  >  4f)  
@@ -57,7 +66,9 @@ if  (this.knife.Transforms[i].position.y  >  4f)
 this.score.ScoreComponents[k].Score += 20;  
 ````
 However this led to an issue and the characters didn't show up right
+
 ![bug](img/problem.gif)
+
 So I took a look inside the scoreUpdateSystem class to see what the problem was about
 ````C#
 if  (this.text.ScoreComponents[i].Score  /  20  <  this.text.ScoreComponents[i].TextSeq.Length  &&  this.text.ScoreComponents[i].Score  %  20  ==  0)  
@@ -72,7 +83,9 @@ Implemented in C# this gives us:
 this.score.ScoreComponents[k].CumScore  =  (double)this.score.ScoreComponents[k].Score  *  ((double)this.score.ScoreComponents[k].Score  +  1.0)  /  2.0;
 ````
 Recompiling the game gives us a working patch that gets us the flag way faster
+
 ![solution](img/solution.gif)
+
 The letters found in the score field build up following text:
 HERE'S THE FLAG YOU'RE LOOKING FOR! HAHA JKJK... UNLESS...? TJCTF{ORENJI_MANGGOE}
 and we have our flag
